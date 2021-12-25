@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
+	"github.com/golang-jwt/jwt"
 	"github.com/pkg/errors"
 )
 
@@ -14,6 +15,7 @@ type key struct {
 	opts       options // main options for key pair create
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
+	jwk        JWK
 }
 
 // GenerateKeys create new key pair
@@ -53,10 +55,10 @@ func (k *key) Load() (err error) {
 }
 
 // JWK create json key value
-func (k *key) JWK() (string, error) {
+func (k *key) JWK() (JWK, error) {
 
 	if k.publicKey == nil {
-		return "", errors.New("public key should be defined")
+		return JWK{}, errors.New("public key should be defined")
 	}
 
 	// convert to modulus
@@ -73,7 +75,25 @@ func (k *key) JWK() (string, error) {
 	kidBytes := h.Sum(nil)
 	kid := base64.StdEncoding.EncodeToString(kidBytes)
 
-	jwk := JWK{Alg: "RS256", Kty: "RSA", Use: "sig", Kid: kid[:4], N: n, E: e[:4]}
+	k.jwk = JWK{Alg: "RS256", Kty: "RSA", Use: "sig", Kid: kid[:4], N: n, E: e[:4]}
 
-	return jwk.ToString(), nil
+	return k.jwk, nil
+}
+
+// Private return private key for sign jwt
+func (k *key) Private() *rsa.PrivateKey {
+	return k.privateKey
+}
+
+// KeyFunc use for JWT sign verify with specific public key
+func (k *key) KeyFunc(token *jwt.Token) (interface{}, error) {
+
+	keyID, ok := token.Header["kid"].(string)
+	if !ok {
+		return nil, errors.New("get JWT kid header not found")
+	}
+	if k.jwk.Kid != keyID {
+		return nil, errors.Errorf("hasn't JWK with kid [%s] for check", keyID)
+	}
+	return k.publicKey, nil
 }

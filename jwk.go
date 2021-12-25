@@ -13,7 +13,7 @@ import (
 	"math/big"
 )
 
-type JWK struct {
+type jwk struct {
 	Kty string `json:"kty"`
 	Kid string `json:"kid"`
 	Use string `json:"use"`
@@ -22,7 +22,7 @@ type JWK struct {
 	E   string `json:"e"`
 }
 
-func (j *JWK) ToString() string {
+func (j *jwk) ToString() string {
 	jwkBuffer, err := json.Marshal(j)
 	if err != nil {
 		return ""
@@ -30,12 +30,12 @@ func (j *JWK) ToString() string {
 	return string(jwkBuffer)
 }
 
-func (j *JWK) PublicKey() (*rsa.PublicKey, error) {
+func (j *jwk) PublicKey() (*rsa.PublicKey, error) {
 	return j.parsePublicKey()
 }
 
-// parsePublicKey from JWK to RSA public key
-func (j *JWK) parsePublicKey() (*rsa.PublicKey, error) {
+// parsePublicKey from jwk to RSA public key
+func (j *jwk) parsePublicKey() (*rsa.PublicKey, error) {
 
 	bufferN, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(j.N) // decode modulus
 	if err != nil {
@@ -47,7 +47,7 @@ func (j *JWK) parsePublicKey() (*rsa.PublicKey, error) {
 		return nil, errors.Wrap(err, "failed to decode public key exponent (e)")
 	}
 
-	// create rsa public key from JWK data
+	// create rsa public key from jwk data
 	publicKey := &rsa.PublicKey{
 		N: big.NewInt(0).SetBytes(bufferN),
 		E: int(big.NewInt(0).SetBytes(bufferE).Int64()),
@@ -56,14 +56,14 @@ func (j *JWK) parsePublicKey() (*rsa.PublicKey, error) {
 }
 
 // KeyFunc use for JWT sign verify with specific public key
-func (j *JWK) KeyFunc(token *jwt.Token) (interface{}, error) {
+func (j *jwk) KeyFunc(token *jwt.Token) (interface{}, error) {
 
 	keyID, ok := token.Header["kid"].(string)
 	if !ok {
 		return nil, errors.New("get JWT kid header not found")
 	}
 	if j.Kid != keyID {
-		return nil, errors.Errorf("hasn't JWK with kid [%s] for check", keyID)
+		return nil, errors.Errorf("hasn't jwk with kid [%s] for check", keyID)
 	}
 	publicKey, err := j.parsePublicKey()
 	if err != nil {

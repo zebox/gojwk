@@ -8,9 +8,36 @@ import (
 	"time"
 )
 
+func TestNewKeys(t *testing.T) {
+	k, err := NewKeys()
+	require.NoError(t, err)
+	require.NotNil(t, k)
+}
+
+func TestNewKeys_withCustomBitSize(t *testing.T) {
+	k, err := NewKeys(BitSize(128))
+	require.NoError(t, err)
+	require.NotNil(t, k)
+
+	err = k.GenerateKeys()
+	require.NoError(t, err)
+	assert.NotNil(t, k.privateKey)
+
+	k, err = NewKeys(BitSize(127))
+	require.Error(t, err)
+}
+
+func TestNewKeys_withStorage(t *testing.T) {
+
+}
+
 func TestKey_GenerateKeys(t *testing.T) {
-	k := key{}
-	err := k.GenerateKeys()
+
+	k, err := NewKeys()
+	require.NoError(t, err)
+	require.NotNil(t, k)
+
+	err = k.GenerateKeys()
 	require.NoError(t, err)
 
 	assert.NotNil(t, k.publicKey)
@@ -18,10 +45,13 @@ func TestKey_GenerateKeys(t *testing.T) {
 }
 
 func TestKey_JWK(t *testing.T) {
-	k := key{}
-	err := k.GenerateKeys()
-	require.NoError(t, err)
 
+	k, err := NewKeys()
+	require.NoError(t, err)
+	require.NotNil(t, k)
+
+	err = k.GenerateKeys()
+	require.NoError(t, err)
 	assert.NotNil(t, k.publicKey)
 	assert.NotNil(t, k.privateKey)
 
@@ -41,10 +71,12 @@ func TestKey_signJWT(t *testing.T) {
 		"sub":   "user_id",
 		"email": "test@example.go",
 	}
-	k := key{}
-	err := k.GenerateKeys()
+
+	k, err := NewKeys()
 	require.NoError(t, err)
 
+	err = k.GenerateKeys()
+	require.NoError(t, err)
 	assert.NotNil(t, k.publicKey)
 	assert.NotNil(t, k.privateKey)
 

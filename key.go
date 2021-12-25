@@ -10,29 +10,74 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Key using for create and validate token signature
-type key struct {
-	opts       options // main options for key pair create
-	publicKey  *rsa.PublicKey
-	privateKey *rsa.PrivateKey
-	jwk        JWK
+type keyStorage interface {
+	Load() (*rsa.PrivateKey, error) // implement loader for a private RSA key
+	Save(key *rsa.PrivateKey) error // implement storage a key pair
 }
 
-// GenerateKeys create new key pair
+// Key using for create and validate token signature
+type key struct {
+	opts Options // main Options for key pair create
+
+	publicKey  *rsa.PublicKey
+	privateKey *rsa.PrivateKey
+
+	jwk jwk
+
+	// key bit size value, set in Options, default - 2048
+	bitSize int
+
+	// set path to part of public key file if need load it from disk
+	publicKeyPath string
+
+	// set path to private key file if need load it from disk
+	privateKeyPath string
+
+	// define saver and loader key pair function
+	storage keyStorage
+}
+
+// NewKeys create new key pair
+func NewKeys(options ...Options) (keysPair *key, err error) {
+
+	// define key and default values
+	keysPair = &key{
+		bitSize: 2048,
+	}
+
+	// parse keysPair options
+	for _, opt := range options {
+		opt(keysPair)
+	}
+
+	// force encrypt with key 128-bits or more
+	if keysPair.bitSize < 128 {
+		return nil, errors.New("bit size invalid and should has length 128 or more")
+	}
+	// check external keysPair defined and try load them
+	if keysPair.storage != nil {
+		if keysPair.privateKey, err = keysPair.storage.Load(); err != nil {
+			return nil, errors.Wrapf(err, "failed to load private key")
+		}
+		keysPair.publicKey = &keysPair.privateKey.PublicKey
+	}
+
+	return keysPair, nil
+}
+
+// GenerateKeys new keys pair and save if external storage field defined
 func (k *key) GenerateKeys() (err error) {
 	reader := rand.Reader
 
-	k.opts.bitSize = 2048 // TODO: REMOVE THIS
-
-	if k.privateKey, err = rsa.GenerateKey(reader, k.opts.bitSize); err != nil {
+	if k.privateKey, err = rsa.GenerateKey(reader, k.bitSize); err != nil {
 		return errors.Wrapf(err, "failed to generate new key pair")
 	}
 
 	k.publicKey = &k.privateKey.PublicKey
 
-	// check and try generated a key pair
-	if k.opts.storage != nil {
-		if err = k.opts.storage.Save(k.privateKey); err != nil {
+	// check for external key storage defined and try save new key
+	if k.storage != nil {
+		if err = k.storage.Save(k.privateKey); err != nil {
 			return err
 		}
 	}
@@ -40,25 +85,11 @@ func (k *key) GenerateKeys() (err error) {
 	return nil
 }
 
-// Loader will load a key pair from storage if one defined
-func (k *key) Load() (err error) {
-	if k.opts.storage == nil {
-		return errors.New("private key loader undefined")
-	}
-
-	if k.privateKey, err = k.opts.storage.Load(); err != nil {
-		return errors.Wrapf(err, "failed to load private key")
-	}
-	k.publicKey = &k.privateKey.PublicKey
-
-	return nil
-}
-
-// JWK create json key value
-func (k *key) JWK() (JWK, error) {
+// jwk create json key value
+func (k *key) JWK() (jwk, error) {
 
 	if k.publicKey == nil {
-		return JWK{}, errors.New("public key should be defined")
+		return jwk{}, errors.New("public key should be defined")
 	}
 
 	// convert to modulus
@@ -75,7 +106,7 @@ func (k *key) JWK() (JWK, error) {
 	kidBytes := h.Sum(nil)
 	kid := base64.StdEncoding.EncodeToString(kidBytes)
 
-	k.jwk = JWK{Alg: "RS256", Kty: "RSA", Use: "sig", Kid: kid[:4], N: n, E: e[:4]}
+	k.jwk = jwk{Alg: "RS256", Kty: "RSA", Use: "sig", Kid: kid[:4], N: n, E: e[:4]}
 
 	return k.jwk, nil
 }
@@ -93,7 +124,7 @@ func (k *key) KeyFunc(token *jwt.Token) (interface{}, error) {
 		return nil, errors.New("get JWT kid header not found")
 	}
 	if k.jwk.Kid != keyID {
-		return nil, errors.Errorf("hasn't JWK with kid [%s] for check", keyID)
+		return nil, errors.Errorf("hasn't jwk with kid [%s] for check", keyID)
 	}
 	return k.publicKey, nil
 }

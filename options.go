@@ -1,24 +1,19 @@
 package jwk
 
-import "crypto/rsa"
+// Main Options for JWKS
+type Options func(k *key)
 
-type keyStorage interface {
-	Load() (*rsa.PrivateKey, error) // implement loader for a private RSA key
-	Save(key *rsa.PrivateKey) error // implement storage a key pair
+// Storage define external storage for key save and load.
+// Save method need for save when new key generated key
+func Storage(s keyStorage) Options {
+	return func(k *key) {
+		k.storage = s
+	}
 }
 
-// Main options for JWKS
-type options struct {
-
-	// key bit size value, set in options, default - 2048
-	bitSize int
-
-	// set path to part of public key file if need load it from disk
-	publicKeyPath string
-
-	// set path to private key file if need load it from disk
-	privateKeyPath string
-
-	// define saver and loader key pair function
-	storage keyStorage
+// Bitsize value
+func BitSize(bitSize int) Options {
+	return func(k *key) {
+		k.bitSize = bitSize
+	}
 }

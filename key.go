@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/json"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +20,7 @@ type key struct {
 func (k *key) GenerateKeys() (err error) {
 	reader := rand.Reader
 
-	k.opts.bitSize=2048 // TODO: REMOVE THIS
+	k.opts.bitSize = 2048 // TODO: REMOVE THIS
 
 	if k.privateKey, err = rsa.GenerateKey(reader, k.opts.bitSize); err != nil {
 		return errors.Wrapf(err, "failed to generate new key pair")
@@ -71,21 +70,10 @@ func (k *key) JWK() (string, error) {
 	// create kid from public key modulus
 	h := sha1.New()
 	h.Write([]byte(n))
-	kidBytes:=h.Sum(nil)
-	kid:=base64.StdEncoding.EncodeToString(kidBytes)
+	kidBytes := h.Sum(nil)
+	kid := base64.StdEncoding.EncodeToString(kidBytes)
 
-	JWK := struct {
-		Alg string `json:"alg"`
-		Kty string `json:"kty"`
-		Use string `json:"use"`
-		Kid string `json:"kid"`
-		E   string `json:"e"`
-		N   string `json:"n"`
-	}{Alg: "RS256", Kty: "RSA", Use: "sig", Kid: kid[:4], N: n, E: e[:4]}
+	jwk := JWK{Alg: "RS256", Kty: "RSA", Use: "sig", Kid: kid[:4], N: n, E: e[:4]}
 
-	jwkBuffer, err := json.Marshal(JWK)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to marshal JWK to string")
-	}
-	return string(jwkBuffer), nil
+	return jwk.ToString(), nil
 }

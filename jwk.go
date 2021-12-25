@@ -4,11 +4,23 @@
 
 package jwk
 
+import (
+	"encoding/json"
+)
+
 type JWK struct {
-	KTY string `json:"kty"`
-	KID string `json:"kid"`
+	Kty string `json:"kty"`
+	Kid string `json:"kid"`
 	Use string `json:"use"`
 	Alg string `json:"alg"`
 	N   string `json:"n"`
 	E   string `json:"e"`
+}
+
+func (j *JWK) ToString() string {
+	jwkBuffer, err := json.Marshal(j)
+	if err != nil {
+		return ""
+	}
+	return string(jwkBuffer)
 }

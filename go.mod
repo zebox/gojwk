@@ -1,4 +1,4 @@
-module go-jwk
+module github.com/zebox/gojwk
 
 go 1.16
 

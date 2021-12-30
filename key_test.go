@@ -32,6 +32,7 @@ func TestNewKeys_withCustomBitSize(t *testing.T) {
 
 	k, err = NewKeys(BitSize(127))
 	require.Error(t, err)
+	assert.NotNil(t, k)
 }
 
 func TestNewKeys_withStorage(t *testing.T) {

@@ -17,8 +17,6 @@ type keyStorage interface {
 
 // Key using for create and validate token signature
 type key struct {
-	opts Options // main Options for key pair create
-
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
 
@@ -27,13 +25,8 @@ type key struct {
 	// key bit size value, set in Options, default - 2048
 	bitSize int
 
-	// set path to part of public key file if need load it from disk
-	publicKeyPath string
-
-	// set path to private key file if need load it from disk
-	privateKeyPath string
-
 	// define saver and loader key pair function
+	// storage required has path to public and private key file which will load from disk
 	storage keyStorage
 }
 

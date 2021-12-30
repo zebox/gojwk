@@ -1,4 +1,4 @@
-package jwk
+package gojwk
 
 import (
 	"crypto/rand"
@@ -57,7 +57,7 @@ func NewKeys(options ...Options) (keysPair *key, err error) {
 	// check external keysPair defined and try load them
 	if keysPair.storage != nil {
 		if keysPair.privateKey, err = keysPair.storage.Load(); err != nil {
-			return nil, errors.Wrapf(err, "failed to load private key")
+			return keysPair, errors.Wrapf(err, "failed to load private key")
 		}
 		keysPair.publicKey = &keysPair.privateKey.PublicKey
 	}

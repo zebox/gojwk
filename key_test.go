@@ -1,11 +1,18 @@
-package jwk
+package gojwk
 
 import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zebox/gojwk/storage"
+	"os"
 	"testing"
 	"time"
+)
+
+const (
+	testPrivateKeyPath = "./test_private.key"
+	testPublicKeyPath  = "./test_public.key"
 )
 
 func TestNewKeys(t *testing.T) {
@@ -28,6 +35,27 @@ func TestNewKeys_withCustomBitSize(t *testing.T) {
 }
 
 func TestNewKeys_withStorage(t *testing.T) {
+
+	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
+	keys, err := NewKeys(Storage(fs))
+	require.Error(t, err)
+	assert.NotNil(t, keys)
+
+	err = keys.GenerateKeys()
+	require.NoError(t, err)
+
+	defer deleteTestFile(t)
+
+	_, err = os.Stat(testPrivateKeyPath)
+	assert.NoError(t, err)
+
+	_, err = os.Stat(testPublicKeyPath)
+	assert.NoError(t, err)
+
+	// testing loading key with New constructor
+	keys, err = NewKeys(Storage(fs))
+	assert.NoError(t, err)
+	assert.NotNil(t, keys)
 
 }
 
@@ -100,4 +128,12 @@ func TestKey_signJWT(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, token)
+}
+
+func deleteTestFile(t *testing.T) {
+	err := os.Remove(testPrivateKeyPath)
+	assert.NoError(t, err)
+
+	err = os.Remove(testPublicKeyPath)
+	assert.NoError(t, err)
 }

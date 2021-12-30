@@ -2,7 +2,7 @@
 // A publish public key (using JWKS) to validate the JWT tokens they issue.
 // For more information see https://datatracker.ietf.org/doc/html/rfc7517
 
-package jwk
+package gojwk
 
 import (
 	"crypto/rsa"

@@ -1,4 +1,4 @@
-package jwk
+package gojwk
 
 // Main Options for JWKS
 type Options func(k *key)
@@ -11,7 +11,7 @@ func Storage(s keyStorage) Options {
 	}
 }
 
-// Bitsize value
+// BitSize value
 func BitSize(bitSize int) Options {
 	return func(k *key) {
 		k.bitSize = bitSize

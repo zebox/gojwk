@@ -22,14 +22,24 @@ type jwk struct {
 	E   string `json:"e"`
 }
 
-func (j *jwk) ToString() string {
-	jwkBuffer, err := json.Marshal(j)
+// JWKS is a list of JWK keys
+type JWKS []jwk
+
+// NewJWK is main constructor for create JWK from raw public key, accept pointer to *rsa.PublicKey
+func NewJWK(publicKey *rsa.PublicKey) (JWK jwk, err error) {
+	keys, err := NewKeys()
 	if err != nil {
-		return ""
+		return JWK, err
 	}
-	return string(jwkBuffer)
+	keys.publicKey = publicKey
+	JWK, err = keys.JWK()
+	if err != nil {
+		return JWK, errors.Wrap(err, "failed get JWK from public key")
+	}
+	return JWK, nil
 }
 
+// PublicKey return raw public key from JWK
 func (j *jwk) PublicKey() (*rsa.PublicKey, error) {
 	return j.parsePublicKey()
 }
@@ -53,6 +63,15 @@ func (j *jwk) parsePublicKey() (*rsa.PublicKey, error) {
 		E: int(big.NewInt(0).SetBytes(bufferE).Int64()),
 	}
 	return publicKey, nil
+}
+
+// ToString convert JWK object to JSON string
+func (j *jwk) ToString() string {
+	jwkBuffer, err := json.Marshal(j)
+	if err != nil {
+		return ""
+	}
+	return string(jwkBuffer)
 }
 
 // KeyFunc use for JWT sign verify with specific public key

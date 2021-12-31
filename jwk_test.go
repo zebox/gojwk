@@ -11,7 +11,7 @@ func TestNewJWK(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
-	err = k.GenerateKeys()
+	err = k.Generate()
 	require.NoError(t, err)
 	kJWK, err := k.JWK()
 	assert.NoError(t, err)
@@ -27,7 +27,7 @@ func TestJwk_PublicKey(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
-	err = k.GenerateKeys()
+	err = k.Generate()
 	require.NoError(t, err)
 	kJWK, err := k.JWK()
 	assert.NoError(t, err)
@@ -43,11 +43,12 @@ func TestJwk_ToString(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
-	err = k.GenerateKeys()
+	err = k.Generate()
 	require.NoError(t, err)
 	kJWK, err := k.JWK()
 	assert.NoError(t, err)
 	strJWK := kJWK.ToString()
+	t.Logf(strJWK)
 	assert.Greater(t, len(strJWK), 0)
 }
 
@@ -55,19 +56,19 @@ func TestJWKS_ToString(t *testing.T) {
 	k1, err := NewKeys()
 	require.NoError(t, err)
 	require.NotNil(t, k1)
-	err = k1.GenerateKeys()
+	err = k1.Generate()
 	require.NoError(t, err)
 
 	k2, err := NewKeys()
 	require.NoError(t, err)
 	require.NotNil(t, k2)
-	err = k2.GenerateKeys()
+	err = k2.Generate()
 	require.NoError(t, err)
 
 	k3, err := NewKeys()
 	require.NoError(t, err)
 	require.NotNil(t, k3)
-	err = k3.GenerateKeys()
+	err = k3.Generate()
 	require.NoError(t, err)
 
 	jwk1, err := k1.JWK()

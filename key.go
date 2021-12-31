@@ -61,8 +61,8 @@ func NewKeys(options ...Options) (keysPair *Key, err error) {
 	return keysPair, nil
 }
 
-// GenerateKeys new keys pair and save if external storage field defined
-func (k *Key) GenerateKeys() (err error) {
+// Generate new keys pair and save if external storage field defined
+func (k *Key) Generate() (err error) {
 	reader := rand.Reader
 
 	if k.privateKey, err = rsa.GenerateKey(reader, k.bitSize); err != nil {

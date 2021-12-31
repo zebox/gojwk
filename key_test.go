@@ -26,7 +26,7 @@ func TestNewKeys_withCustomBitSize(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
-	err = k.GenerateKeys()
+	err = k.Generate()
 	require.NoError(t, err)
 	assert.NotNil(t, k.privateKey)
 
@@ -42,7 +42,7 @@ func TestNewKeys_withStorage(t *testing.T) {
 	require.Error(t, err)
 	assert.NotNil(t, keys)
 
-	err = keys.GenerateKeys()
+	err = keys.Generate()
 	require.NoError(t, err)
 
 	defer deleteTestFile(t)
@@ -66,11 +66,12 @@ func TestKey_GenerateKeys(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
-	err = k.GenerateKeys()
+	err = k.Generate()
 	require.NoError(t, err)
 
 	assert.NotNil(t, k.publicKey)
 	assert.NotNil(t, k.privateKey)
+
 }
 
 func TestKey_JWK(t *testing.T) {
@@ -79,7 +80,7 @@ func TestKey_JWK(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
-	err = k.GenerateKeys()
+	err = k.Generate()
 	require.NoError(t, err)
 	assert.NotNil(t, k.publicKey)
 	assert.NotNil(t, k.privateKey)
@@ -106,7 +107,7 @@ func TestKey_signJWT(t *testing.T) {
 	k, err := NewKeys()
 	require.NoError(t, err)
 
-	err = k.GenerateKeys()
+	err = k.Generate()
 	require.NoError(t, err)
 	assert.NotNil(t, k.publicKey)
 	assert.NotNil(t, k.privateKey)

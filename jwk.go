@@ -81,7 +81,7 @@ func (j *JWK) parsePublicKey() (*rsa.PublicKey, error) {
 
 // ToString convert JWK object to JSON string
 func (j *JWK) ToString() string {
-	jwkBuffer, err := json.Marshal(j)
+	jwkBuffer, err := json.MarshalIndent(j, "", "  ")
 	if err != nil {
 		return ""
 	}

@@ -54,7 +54,7 @@ A after execute code above you get result like this:
           "e": "AQAB"
         }
 ```
-
+For more info see the [example](https://github.com/zebox/gojwk/blob/master/_example/main.go)
 
 
 

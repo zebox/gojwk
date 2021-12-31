@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	testPrivateKeyPath = "./test_private.key"
-	testPublicKeyPath  = "./test_public.key"
+	testPrivateKeyPath = "./test_private.Key"
+	testPublicKeyPath  = "./test_public.Key"
 )
 
 func TestNewKeys(t *testing.T) {
@@ -32,7 +32,7 @@ func TestNewKeys_withCustomBitSize(t *testing.T) {
 
 	k, err = NewKeys(BitSize(127))
 	require.Error(t, err)
-	assert.NotNil(t, k)
+	assert.Nil(t, k)
 }
 
 func TestNewKeys_withStorage(t *testing.T) {
@@ -53,7 +53,7 @@ func TestNewKeys_withStorage(t *testing.T) {
 	_, err = os.Stat(testPublicKeyPath)
 	assert.NoError(t, err)
 
-	// testing loading key with New constructor
+	// testing loading Key with New constructor
 	keys, err = NewKeys(Storage(fs))
 	assert.NoError(t, err)
 	assert.NotNil(t, keys)
@@ -89,6 +89,8 @@ func TestKey_JWK(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jwk)
+	assert.Equal(t, k.KeyID, jwk.Kid)
+
 }
 
 func TestKey_signJWT(t *testing.T) {

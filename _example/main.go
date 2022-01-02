@@ -2,34 +2,132 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/golang-jwt/jwt"
 	"github.com/zebox/gojwk"
 	"github.com/zebox/gojwk/storage"
+	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 )
 
-func main() {
+type token struct {
+	JWT string `json:"jwt"`
+}
 
+func main() {
+	ctx, ctxCancel := context.WithCancel(context.Background())
 	keys, jwk, err := initKeys()
 
 	if err != nil {
 		panic(err)
 	}
 
-	_ = http.ListenAndServe(":3000", createRouter(keys, jwk))
+	// init http server and routes
+	var httpServer = &http.Server{
+		Addr:              fmt.Sprintf(":%d", 8899),
+		Handler:           createRouter(keys, jwk),
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
 
+	// shutting down server
+	go func() {
+		<-ctx.Done()
+		httpServer.Shutdown(context.Background())
+	}()
+
+	// starting server
+	go func() {
+		_ = httpServer.ListenAndServe()
+	}()
+
+	defer ctxCancel()
+	time.Sleep(time.Second) // waiting for server start
+
+	// try to get JWT
+	token, err := getToken(ctx)
+	if err != nil {
+		fmt.Printf("[ERROR]: %v\n", err)
+		return
+	}
+	fmt.Printf("Token: %s\n", token)
+
+	// try to get data from service1 with JWT
+	data, err := getService(ctx, token)
+	if err != nil {
+		fmt.Printf("[ERROR]: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Data: %s\n", data)
+}
+
+func getToken(ctx context.Context) (tkn token, err error) {
+	url := "http://127.0.0.1:8899/token"
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	req, _ := http.NewRequestWithContext(ctx, "POST", url, nil)
+	req.Header.Add("Accept", "application/json")
+
+	req.SetBasicAuth("test", "test")
+
+	resp, err := client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
+	if err != nil || resp.StatusCode != 200 {
+		log.Printf("[ERROR] [HTTP CODE: %d]failed to get token: %+v", resp.StatusCode, err)
+		return tkn, err
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&tkn)
+
+	if err != nil {
+		log.Printf("[ERROR] failed read body of response: %+v", err)
+		return tkn, err
+	}
+	return tkn, nil
+}
+
+func getService(ctx context.Context, jwt token) (string, error) {
+	url := "http://127.0.0.1:8899/service1"
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", jwt.JWT))
+
+	resp, err := client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
+	if err != nil || resp.StatusCode != 200 {
+		log.Printf("[ERROR] [HTTP CODE: %d]failed to get token: %+v", resp.StatusCode, err)
+		return "", err
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("[ERROR] failed read body of response: %+v", err)
+		return "", err
+	}
+	return string(b), nil
 }
 
 func createRouter(keys *gojwk.Key, jwk *gojwk.JWK) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	r.Get("/auth", func(w http.ResponseWriter, r *http.Request) {
+	r.Post("/token", func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
 		w.Header().Add("Content-Type", "application/json")
 		if !ok {
@@ -59,6 +157,7 @@ func createRouter(keys *gojwk.Key, jwk *gojwk.JWK) *chi.Mux {
 		token.Header["alg"] = jwk.Alg
 		token.Header["kid"] = jwk.Kid
 
+		// sign JWT with private key
 		tokenString, err := token.SignedString(keys.Private())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -72,6 +171,7 @@ func createRouter(keys *gojwk.Key, jwk *gojwk.JWK) *chi.Mux {
 		tokenHeaderValue := r.Header.Get("Authorization")
 		tokenString := strings.Split(tokenHeaderValue, "Bearer ")
 
+		// check JWT with JWK public key
 		_, err := jwt.Parse(tokenString[1], jwk.KeyFunc)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -82,6 +182,7 @@ func createRouter(keys *gojwk.Key, jwk *gojwk.JWK) *chi.Mux {
 		w.Header().Add("Content-Type", "application/json")
 		w.Write([]byte(fmt.Sprintf(`{"access":true}`)))
 	})
+
 	return r
 }
 

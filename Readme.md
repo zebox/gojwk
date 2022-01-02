@@ -9,23 +9,22 @@ A public key can be placed at different service or server for validate JWT signa
 
 The Library write in Go and you can either embed to golang projects or use as a standalone application.
 
-##### HOW TO USE
+#### HOW TO USE
 Main items of this library is crypto keys pair. You can generate they or load from some storage. Library supports both of this way (in currently support only RSA keys).
-1. Init keys pair with `NewKeys`for create `Key` instance.
+
+Init keys pair with `NewKeys`for create `Key` instance.
 
 Constructor can accept two options:
 - Storage - this is interface which has `Load` and `Save` method. They define where keys will be stored and load from. 
 User can use pre-defined storage `File` provider in `storage` package. By default, this option is undefined and new generated keys will store in memory only.
 Storage `File` provider required path to private and public keys. 
-*NOTICE:* Where provider defined, but keys not exist `NewKeys` return error because `Load` can't load keys data.
   
 - BitSize - defined size for crypto key which will be generated. Option accept `int` value  By default - 2048.
 
-After `Keys` inited user should check for key exist especially if keys storage provider defined. When keys exist or
-generated successfuly you can create JWK key for use it in you services. 
+After `Keys` inited user should either `Generate` new key pair or `Load` from storage provider if keys doesn't exist in storage yet. 
   
 ```go
-keys,err:=NewKeys()
+keys,err:=NewKeys() // if storage option undefined key pair store in memory
  
 if err!=nil {
         // handle error 
@@ -37,7 +36,7 @@ if err=keys.Generate();err!=nil {
 }
 
 err,jwk:=keys.JWK()
-if err=keys.Generate();err!=nil {
+if err!=nil {
     // handle error
 }
 
@@ -52,9 +51,33 @@ A after execute code above you get result like this:
           "alg": "RS256",
           "n": "n5Y24DhSDIKIN6tJbrOMxfZpoedvAIAA5vKv...",
           "e": "AQAB"
-        }
+}
 ```
-For more info see the [example](https://github.com/zebox/gojwk/blob/master/_example/main.go)
+Example with options:
+```go
+fs := storage.NewFileStorage("./test_private.key", "./test_public.key")
+keys, err := NewKeys(Storage(fs))
+
+// if storage provider hasn't key pair yet user can generate they 
+// after generated key pair will be save to defined storage
+if err=keys.Generate();err!=nil {
+    // handle error
+}
+
+// Load key pair from storage provider
+if err=keys.Load();err!=nil {
+    // handle error
+}
+
+err,jwk:=keys.JWK()
+if err!=nil {
+    // handle error
+}
+```
+Full example with web service usage see here [example](https://github.com/zebox/gojwk/blob/master/_example/main.go)
+
+####Status
+The code still under development. Until v1.x released the API & protocol may change.
 
 
 

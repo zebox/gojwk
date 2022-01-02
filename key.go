@@ -23,6 +23,7 @@ type Key struct {
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
 
+	// json web key need for using in keyFunc for JWT sign check with Key instance
 	jwk JWK
 
 	// Key bit size value, set in Options, default - 2048
@@ -50,13 +51,6 @@ func NewKeys(options ...Options) (keysPair *Key, err error) {
 	if keysPair.bitSize < 128 {
 		return nil, errors.New("bit size invalid and should has length 128 or more")
 	}
-	// check external keysPair defined and try load them
-	if keysPair.storage != nil {
-		if keysPair.privateKey, err = keysPair.storage.Load(); err != nil {
-			return keysPair, errors.Wrapf(err, "failed to load private Key")
-		}
-		keysPair.publicKey = &keysPair.privateKey.PublicKey
-	}
 
 	return keysPair, nil
 }
@@ -78,6 +72,21 @@ func (k *Key) Generate() (err error) {
 		}
 	}
 
+	return nil
+}
+
+// Load trying loading private and public key pair from storage provider
+func (k *Key) Load() (err error) {
+
+	if k.storage == nil {
+		return errors.New("failed to load key pair, storage provider undefined")
+	}
+
+	if k.privateKey, err = k.storage.Load(); err != nil {
+		return errors.Wrap(err, "failed to load private key")
+	}
+	// assign public key from private
+	k.publicKey = &k.privateKey.PublicKey
 	return nil
 }
 

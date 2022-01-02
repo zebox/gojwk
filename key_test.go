@@ -39,7 +39,7 @@ func TestNewKeys_withStorage(t *testing.T) {
 
 	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
 	keys, err := NewKeys(Storage(fs))
-	require.Error(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, keys)
 
 	err = keys.Generate()
@@ -52,11 +52,6 @@ func TestNewKeys_withStorage(t *testing.T) {
 
 	_, err = os.Stat(testPublicKeyPath)
 	assert.NoError(t, err)
-
-	// testing loading Key with New constructor
-	keys, err = NewKeys(Storage(fs))
-	assert.NoError(t, err)
-	assert.NotNil(t, keys)
 
 }
 
@@ -74,6 +69,37 @@ func TestKey_GenerateKeys(t *testing.T) {
 
 }
 
+func TestKey_Load(t *testing.T) {
+	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
+	keys, err := NewKeys(Storage(fs))
+	require.NoError(t, err)
+	assert.NotNil(t, keys)
+
+	err = keys.Generate()
+	require.NoError(t, err)
+
+	defer deleteTestFile(t)
+
+	_, err = os.Stat(testPrivateKeyPath)
+	assert.NoError(t, err)
+
+	_, err = os.Stat(testPublicKeyPath)
+	assert.NoError(t, err)
+
+	// trying load key pair from file storage provider
+	keys, err = NewKeys(Storage(fs))
+	assert.NoError(t, err)
+	assert.Nil(t, keys.publicKey)
+	assert.Nil(t, keys.privateKey)
+
+	assert.NoError(t, keys.Load())
+	assert.NotNil(t, keys.publicKey)
+	assert.NotNil(t, keys.privateKey)
+
+	keys.storage = nil
+	assert.Error(t, keys.Load())
+
+}
 func TestKey_JWK(t *testing.T) {
 
 	k, err := NewKeys()

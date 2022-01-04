@@ -13,14 +13,14 @@ import (
 )
 
 type keyStorage interface {
-	Load() (*rsa.PrivateKey, error)                // implement loader for a private RSA Key pairs from storage provider
-	Save(key *rsa.PrivateKey, certCA []byte) error // implement save a Key pairs and root certificates bundle to storage provider
+	Load() (*rsa.PrivateKey, error)                // implement loader for a private RSA Keys pairs from storage provider
+	Save(key *rsa.PrivateKey, certCA []byte) error // implement save a Keys pairs and root certificates bundle to storage provider
 }
 
-// Key using for create and validate token signature
-type Key struct {
+// Keys using for create and validate token signature
+type Keys struct {
 
-	// Key identification for detect and use Key
+	// Keys identification for detect and use Keys
 	KeyID string
 
 	publicKey  *rsa.PublicKey
@@ -29,22 +29,22 @@ type Key struct {
 	//  Certificate and  Certificate Authority
 	certCARoot []byte
 
-	// json web key need for using in keyFunc for JWT sign check with Key instance
+	// json web key need for using in keyFunc for JWT sign check with Keys instance
 	jwk JWK
 
-	// Key bit size value, set in Options, default - 2048
+	// Keys bit size value, set in Options, default - 2048
 	bitSize int
 
-	// define saver and loader Key pair function
-	// storage required has path to public and private Key file which will load from disk
+	// define saver and loader Keys pair function
+	// storage required has path to public and private Keys file which will load from disk
 	storage keyStorage
 }
 
-// NewKeys create new Key pair
-func NewKeys(options ...Options) (keysPair *Key, err error) {
+// NewKeys create new Keys pair
+func NewKeys(options ...Options) (keysPair *Keys, err error) {
 
-	// define Key and default values
-	keysPair = &Key{
+	// define Keys and default values
+	keysPair = &Keys{
 		bitSize: 2048,
 	}
 
@@ -53,7 +53,7 @@ func NewKeys(options ...Options) (keysPair *Key, err error) {
 		opt(keysPair)
 	}
 
-	// force encrypt with Key 128-bits or more
+	// force encrypt with Keys 128-bits or more
 	if keysPair.bitSize < 128 {
 		return nil, errors.New("bit size invalid and should has length 128 or more")
 	}
@@ -62,11 +62,11 @@ func NewKeys(options ...Options) (keysPair *Key, err error) {
 }
 
 // Generate new keys pair and save if external storage field defined
-func (k *Key) Generate() (err error) {
+func (k *Keys) Generate() (err error) {
 	reader := rand.Reader
 
 	if k.privateKey, err = rsa.GenerateKey(reader, k.bitSize); err != nil {
-		return errors.Wrapf(err, "failed to generate new Key pair")
+		return errors.Wrapf(err, "failed to generate new Keys pair")
 	}
 
 	k.publicKey = &k.privateKey.PublicKey
@@ -76,8 +76,8 @@ func (k *Key) Generate() (err error) {
 }
 
 // Save keys pair to provider storage if it defined
-func (k *Key) Save() error {
-	// check for external Key storage defined and try save new Key
+func (k *Keys) Save() error {
+	// check for external Keys storage defined and try save new Keys
 	if k.storage != nil {
 		return k.storage.Save(k.privateKey, k.certCARoot)
 	}
@@ -85,7 +85,7 @@ func (k *Key) Save() error {
 }
 
 // Load trying loading private and public key pair from storage provider
-func (k *Key) Load() (err error) {
+func (k *Keys) Load() (err error) {
 
 	if k.storage == nil {
 		return errors.New("failed to load key pair, storage provider undefined")
@@ -99,17 +99,17 @@ func (k *Key) Load() (err error) {
 	return nil
 }
 
-// JWK create JSON Web Key from public Key
-func (k *Key) JWK() (jwk JWK, err error) {
+// JWK create JSON Web Keys from public Keys
+func (k *Keys) JWK() (jwk JWK, err error) {
 	return NewJWK(k.publicKey)
 }
 
-// Private return private Key for sign jwt
-func (k *Key) Private() *rsa.PrivateKey {
+// Private return private Keys for sign jwt
+func (k *Keys) Private() *rsa.PrivateKey {
 	return k.privateKey
 }
 
-func (k *Key) CreateCAROOT(ca *x509.Certificate) error {
+func (k *Keys) CreateCAROOT(ca *x509.Certificate) error {
 	if k.privateKey == nil {
 		return errors.New("private key shouldn't be nil when CA create")
 	}
@@ -144,8 +144,8 @@ func (k *Key) CreateCAROOT(ca *x509.Certificate) error {
 	return nil
 }
 
-// KeyFunc use for JWT sign verify with specific public Key
-func (k *Key) KeyFunc(token *jwt.Token) (interface{}, error) {
+// KeyFunc use for JWT sign verify with specific public Keys
+func (k *Keys) KeyFunc(token *jwt.Token) (interface{}, error) {
 
 	keyID, ok := token.Header["kid"].(string)
 	if !ok {
@@ -157,11 +157,11 @@ func (k *Key) KeyFunc(token *jwt.Token) (interface{}, error) {
 	return k.publicKey, nil
 }
 
-// kid return Key ID of public key for map with JWK
-func (k *Key) kid() string {
+// kid return Keys ID of public key for map with JWK
+func (k *Keys) kid() string {
 	n := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(k.publicKey.N.Bytes())
 
-	// create kid from public Key modulus
+	// create kid from public Keys modulus
 	h := sha1.New()
 	h.Write([]byte(n))
 	kidBytes := h.Sum(nil)

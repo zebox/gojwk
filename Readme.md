@@ -12,7 +12,7 @@ The Library write in Go and you can either embed to golang projects or use as a 
 #### HOW TO USE
 Main items of this library is crypto keys pair. You can generate they or load from some storage. Library supports both of this way (in currently support only RSA keys).
 
-Init keys pair with `NewKeys`for create `Key` instance.
+Init keys pair with `NewKeys`for create `Keys` instance.
 
 Constructor can accept two options:
 - Storage - this is interface which has `Load` and `Save` method. They define where keys will be stored and load from. 
@@ -55,10 +55,11 @@ A after execute code above you get result like this:
 ```
 Example with options:
 ```go
-fs := storage.NewFileStorage("./test_private.key", "./test_public.key")
+// NewFileStorage accept rootPath, privateKey and publicKey names params
+fs := storage.NewFileStorage("./","test_private.key", "test_public.key")
 keys, err := NewKeys(Storage(fs))
 
-// if storage provider hasn't key pair yet user can generate they 
+// if storage provider hasn't keys pair yet user can generate they 
 // after generated key pair will be save to defined storage
 if err=keys.Generate();err!=nil {
     // handle error
@@ -74,6 +75,8 @@ if err!=nil {
     // handle error
 }
 ```
+`Keys` has method `CreateCAROOT` for create Certificate Authority (CA) for generated keys pair
+
 Full example with web service usage see here [example](https://github.com/zebox/gojwk/blob/master/_example/main.go)
 
 #### Status

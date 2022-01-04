@@ -65,14 +65,17 @@ func (k *Key) Generate() (err error) {
 
 	k.publicKey = &k.privateKey.PublicKey
 	k.KeyID = k.kid()
-	// check for external Key storage defined and try save new Key
-	if k.storage != nil {
-		if err = k.storage.Save(k.privateKey); err != nil {
-			return err
-		}
-	}
 
 	return nil
+}
+
+// Save keys pair to provider storage if it defined
+func (k *Key) Save() error {
+	// check for external Key storage defined and try save new Key
+	if k.storage != nil {
+		return k.storage.Save(k.privateKey)
+	}
+	return errors.New("storage provider undefined")
 }
 
 // Load trying loading private and public key pair from storage provider

@@ -69,6 +69,32 @@ func TestKey_GenerateKeys(t *testing.T) {
 
 }
 
+func TestKey_Save(t *testing.T) {
+	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
+	keys, err := NewKeys(Storage(fs))
+	require.NoError(t, err)
+	assert.NotNil(t, keys)
+
+	err = keys.Generate()
+	require.NoError(t, err)
+
+	require.NoError(t, keys.Save())
+	defer deleteTestFile(t)
+	// check files for exist on a filesystem
+	_, err = os.Stat(testPrivateKeyPath)
+	assert.NoError(t, err)
+
+	_, err = os.Stat(testPublicKeyPath)
+	assert.NoError(t, err)
+
+	keys, err = NewKeys()
+	require.NoError(t, err)
+
+	err = keys.Save()
+	assert.Error(t, err)
+
+}
+
 func TestKey_Load(t *testing.T) {
 	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
 	keys, err := NewKeys(Storage(fs))

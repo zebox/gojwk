@@ -10,17 +10,19 @@ import (
 )
 
 const (
-	testPrivateKeyPath = "./test_private.key"
-	testPublicKeyPath  = "./test_public.key"
+	testRootPath   = "./"
+	testPrivateKey = "test_private.key"
+	testPublicKey  = "test_public.key"
 )
 
 func TestNewFileStorage(t *testing.T) {
 
 	testFS := FileStorage{
-		privateKeyPath: testPrivateKeyPath,
-		publicKeyPath:  testPublicKeyPath,
+		rootPath:   testRootPath,
+		privateKey: testPrivateKey,
+		publicKey:  testPublicKey,
 	}
-	fs := NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
+	fs := NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	assert.Equal(t, testFS, fs)
 }
 
@@ -31,16 +33,16 @@ func TestFileStorage_Save(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, privateKey)
 
-	fs := NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
-	err = fs.Save(privateKey)
+	fs := NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
+	err = fs.Save(privateKey, nil)
 	require.NoError(t, err)
 
 	defer deleteTestFile(t)
 
-	_, err = os.Stat(testPrivateKeyPath)
+	_, err = os.Stat(testPrivateKey)
 	assert.NoError(t, err)
 
-	_, err = os.Stat(testPublicKeyPath)
+	_, err = os.Stat(testPublicKey)
 	assert.NoError(t, err)
 
 }
@@ -52,8 +54,8 @@ func TestFileStorage_Load(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, privateKey)
 
-	fs := NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
-	err = fs.Save(privateKey)
+	fs := NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
+	err = fs.Save(privateKey, nil)
 	require.NoError(t, err)
 	defer deleteTestFile(t)
 
@@ -65,9 +67,9 @@ func TestFileStorage_Load(t *testing.T) {
 }
 
 func deleteTestFile(t *testing.T) {
-	err := os.Remove(testPrivateKeyPath)
+	err := os.Remove(testRootPath + testPrivateKey)
 	assert.NoError(t, err)
 
-	err = os.Remove(testPublicKeyPath)
+	err = os.Remove(testRootPath + testPublicKey)
 	assert.NoError(t, err)
 }

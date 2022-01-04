@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"github.com/pkg/errors"
 	"io"
 	"log"
@@ -13,23 +14,26 @@ import (
 )
 
 type FileStorage struct {
-	publicKeyPath  string // path to public key file
-	privateKeyPath string // path to private key file
+	rootPath   string // root path where files stored
+	publicKey  string // a public key file
+	privateKey string // a private key file
 }
 
 // NewFileStorage accept path to private and public key files
 // File path doesn't check in constructor because files can be generate by 'key' package in future
-func NewFileStorage(privateKeyPath, publicKeyPath string) FileStorage {
+func NewFileStorage(rootPath, privateKey, publicKey string) FileStorage {
 	return FileStorage{
-		privateKeyPath: privateKeyPath,
-		publicKeyPath:  publicKeyPath,
+		rootPath:   rootPath,
+		privateKey: privateKey,
+		publicKey:  publicKey,
 	}
 }
 
 // Save will saving private and public Key to file
-// A public key need save separately for using in isolated web-service as JWK
-func (fs FileStorage) Save(key *rsa.PrivateKey) error {
-	privateKeyFile, err := os.Create(fs.privateKeyPath)
+// A public key need save separately for using in isolated web-service as JWK,
+// also save allow store certificates bundle files if they created
+func (fs FileStorage) Save(key *rsa.PrivateKey, certCA []byte) error {
+	privateKeyFile, err := os.Create(fmt.Sprintf("%s\\%s", fs.rootPath, fs.privateKey))
 	if err != nil {
 		return errors.Wrap(err, "failed to save private key")
 	}
@@ -42,7 +46,7 @@ func (fs FileStorage) Save(key *rsa.PrivateKey) error {
 	}()
 
 	// processing with public key
-	publicKeyFile, err := os.Create(fs.publicKeyPath)
+	publicKeyFile, err := os.Create(fmt.Sprintf("%s\\%s", fs.rootPath, fs.publicKey))
 	if err != nil {
 		return errors.Wrap(err, "failed to save private key")
 	}
@@ -70,19 +74,36 @@ func (fs FileStorage) Save(key *rsa.PrivateKey) error {
 		return errors.Wrap(err, "failed to save public key to file")
 	}
 
+	if certCA != nil {
+		// processing with CA ROOT file
+		caRootFile, err := os.Create(fmt.Sprintf("%s\\CA_%s.%s", fs.rootPath, fs.publicKey, "crt"))
+		if err != nil {
+			return errors.Wrap(err, "failed to save private key")
+		}
+
+		defer func() {
+			if err := caRootFile.Close(); err != nil {
+				log.Printf("failed to close CA ROOT file %v", err)
+			}
+		}()
+		if _, err = caRootFile.Write(certCA); err != nil {
+			return errors.Wrap(err, "failed to save CA ROOT file")
+		}
+	}
+
 	return nil
 }
 
 // Load will loading privateKey from PEM-file
 func (fs FileStorage) Load() (*rsa.PrivateKey, error) {
 	// path to private key file is required and throw error if path doesn't set
-	if fs.privateKeyPath == "" {
+	if fs.privateKey == "" {
 		return nil, errors.New("path to private key must be set")
 	}
 
-	privateKeyFile, err := os.Open(fs.privateKeyPath)
+	privateKeyFile, err := os.Open(fmt.Sprintf("%s\\%s", fs.rootPath, fs.privateKey))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load private key from file %s", fs.privateKeyPath)
+		return nil, errors.Wrapf(err, "failed to load private key from file %s\\%s", fs.rootPath, fs.privateKey)
 	}
 
 	defer func() {

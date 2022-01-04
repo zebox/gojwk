@@ -1,18 +1,23 @@
 package gojwk
 
 import (
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zebox/gojwk/storage"
+	"math/big"
 	"os"
 	"testing"
 	"time"
 )
 
 const (
-	testPrivateKeyPath = "./test_private.Key"
-	testPublicKeyPath  = "./test_public.Key"
+	testRootPath   = "./"
+	testPrivateKey = "test_private.key"
+	testPublicKey  = "test_public.key"
 )
 
 func TestNewKeys(t *testing.T) {
@@ -37,20 +42,20 @@ func TestNewKeys_withCustomBitSize(t *testing.T) {
 
 func TestNewKeys_withStorage(t *testing.T) {
 
-	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
+	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	keys, err := NewKeys(Storage(fs))
 	require.NoError(t, err)
 	assert.NotNil(t, keys)
 
 	err = keys.Generate()
 	require.NoError(t, err)
-
+	require.NoError(t, keys.Save())
 	defer deleteTestFile(t)
 
-	_, err = os.Stat(testPrivateKeyPath)
+	_, err = os.Stat(testRootPath + testPrivateKey)
 	assert.NoError(t, err)
 
-	_, err = os.Stat(testPublicKeyPath)
+	_, err = os.Stat(testPublicKey)
 	assert.NoError(t, err)
 
 }
@@ -68,23 +73,76 @@ func TestKey_GenerateKeys(t *testing.T) {
 	assert.NotNil(t, k.privateKey)
 
 }
+func TestKey_CreateCACertificate(t *testing.T) {
+	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
+	keys, err := NewKeys(Storage(fs))
+	require.NoError(t, err)
+	assert.NotNil(t, keys)
+	assert.NoError(t, keys.Generate())
 
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"TEST, INC."},
+			Country:       []string{"RU"},
+			Province:      []string{""},
+			Locality:      []string{"Krasnodar"},
+			StreetAddress: []string{"Krasnaya"},
+			PostalCode:    []string{"350000"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Second * 30),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	assert.NoError(t, keys.CreateCAROOT(ca))
+	assert.NotNil(t, keys.certCARoot)
+
+}
 func TestKey_Save(t *testing.T) {
-	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
+	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	keys, err := NewKeys(Storage(fs))
 	require.NoError(t, err)
 	assert.NotNil(t, keys)
 
 	err = keys.Generate()
+
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"TEST, INC."},
+			Country:       []string{"RU"},
+			Province:      []string{""},
+			Locality:      []string{"Krasnodar"},
+			StreetAddress: []string{"Krasnaya"},
+			PostalCode:    []string{"350000"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Second * 30),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	assert.NoError(t, keys.CreateCAROOT(ca))
 	require.NoError(t, err)
 
 	require.NoError(t, keys.Save())
 	defer deleteTestFile(t)
 	// check files for exist on a filesystem
-	_, err = os.Stat(testPrivateKeyPath)
+	_, err = os.Stat(testRootPath + testPrivateKey)
 	assert.NoError(t, err)
 
-	_, err = os.Stat(testPublicKeyPath)
+	_, err = os.Stat(testRootPath + testPublicKey)
+	assert.NoError(t, err)
+
+	CAPath := fmt.Sprintf("%sCA_%s.crt", testRootPath, testPublicKey)
+	_, err = os.Stat(CAPath)
+	assert.NoError(t, err)
+
+	err = os.Remove(CAPath)
 	assert.NoError(t, err)
 
 	keys, err = NewKeys()
@@ -96,20 +154,20 @@ func TestKey_Save(t *testing.T) {
 }
 
 func TestKey_Load(t *testing.T) {
-	fs := storage.NewFileStorage(testPrivateKeyPath, testPublicKeyPath)
+	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	keys, err := NewKeys(Storage(fs))
 	require.NoError(t, err)
 	assert.NotNil(t, keys)
 
 	err = keys.Generate()
 	require.NoError(t, err)
-
+	require.NoError(t, keys.Save())
 	defer deleteTestFile(t)
 
-	_, err = os.Stat(testPrivateKeyPath)
+	_, err = os.Stat(testRootPath + testPrivateKey)
 	assert.NoError(t, err)
 
-	_, err = os.Stat(testPublicKeyPath)
+	_, err = os.Stat(testRootPath + testPublicKey)
 	assert.NoError(t, err)
 
 	// trying load key pair from file storage provider
@@ -187,9 +245,9 @@ func TestKey_signJWT(t *testing.T) {
 }
 
 func deleteTestFile(t *testing.T) {
-	err := os.Remove(testPrivateKeyPath)
+	err := os.Remove(testRootPath + testPrivateKey)
 	assert.NoError(t, err)
 
-	err = os.Remove(testPublicKeyPath)
+	err = os.Remove(testRootPath + testPublicKey)
 	assert.NoError(t, err)
 }

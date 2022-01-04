@@ -1,17 +1,20 @@
 package gojwk
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"github.com/golang-jwt/jwt"
 	"github.com/pkg/errors"
 )
 
 type keyStorage interface {
-	Load() (*rsa.PrivateKey, error) // implement loader for a private RSA Key
-	Save(key *rsa.PrivateKey) error // implement storage a Key pair
+	Load() (*rsa.PrivateKey, error)                // implement loader for a private RSA Key pairs from storage provider
+	Save(key *rsa.PrivateKey, certCA []byte) error // implement save a Key pairs and root certificates bundle to storage provider
 }
 
 // Key using for create and validate token signature
@@ -22,6 +25,9 @@ type Key struct {
 
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
+
+	//  Certificate and  Certificate Authority
+	certCARoot []byte
 
 	// json web key need for using in keyFunc for JWT sign check with Key instance
 	jwk JWK
@@ -73,7 +79,7 @@ func (k *Key) Generate() (err error) {
 func (k *Key) Save() error {
 	// check for external Key storage defined and try save new Key
 	if k.storage != nil {
-		return k.storage.Save(k.privateKey)
+		return k.storage.Save(k.privateKey, k.certCARoot)
 	}
 	return errors.New("storage provider undefined")
 }
@@ -101,6 +107,41 @@ func (k *Key) JWK() (jwk JWK, err error) {
 // Private return private Key for sign jwt
 func (k *Key) Private() *rsa.PrivateKey {
 	return k.privateKey
+}
+
+func (k *Key) CreateCAROOT(ca *x509.Certificate) error {
+	if k.privateKey == nil {
+		return errors.New("private key shouldn't be nil when CA create")
+	}
+
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, k.publicKey, k.privateKey)
+	if err != nil {
+		return errors.Wrap(err, "failed to create certificate")
+	}
+
+	caPEM := new(bytes.Buffer)
+	err = pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "failed to encode certificate CA to PEM bytes")
+	}
+
+	caPrivKeyPEM := new(bytes.Buffer)
+	err = pem.Encode(caPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(k.privateKey),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to encode private key certificate to PEM bytes")
+	}
+
+	// assign certificates bytes to CA ROOT field
+	k.certCARoot = caPEM.Bytes()
+
+	return nil
 }
 
 // KeyFunc use for JWT sign verify with specific public Key

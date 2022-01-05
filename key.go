@@ -144,6 +144,11 @@ func (k *Keys) CreateCAROOT(ca *x509.Certificate) error {
 	return nil
 }
 
+// CertCA return CA root certificate
+func (k *Keys) CertCA() []byte {
+	return k.certCARoot
+}
+
 // KeyFunc use for JWT sign verify with specific public Keys
 func (k *Keys) KeyFunc(token *jwt.Token) (interface{}, error) {
 

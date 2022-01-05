@@ -73,6 +73,7 @@ func TestKey_GenerateKeys(t *testing.T) {
 	assert.NotNil(t, k.privateKey)
 
 }
+
 func TestKey_CreateCACertificate(t *testing.T) {
 	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	keys, err := NewKeys(Storage(fs))
@@ -97,6 +98,37 @@ func TestKey_CreateCACertificate(t *testing.T) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
+	assert.NoError(t, keys.CreateCAROOT(ca))
+	assert.NotNil(t, keys.CertCA())
+
+}
+
+func TestKeys_CertCA(t *testing.T) {
+	keys, err := NewKeys()
+	require.NoError(t, err)
+	assert.NotNil(t, keys)
+
+	assert.NoError(t, keys.Generate())
+	assert.Nil(t, keys.certCARoot)
+
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"TEST, INC."},
+			Country:       []string{"RU"},
+			Province:      []string{""},
+			Locality:      []string{"Krasnodar"},
+			StreetAddress: []string{"Krasnaya"},
+			PostalCode:    []string{"350000"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Second * 30),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
 	assert.NoError(t, keys.CreateCAROOT(ca))
 	assert.NotNil(t, keys.certCARoot)
 

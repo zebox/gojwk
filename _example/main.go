@@ -74,14 +74,12 @@ func main() {
 	}()
 
 	// starting server
-	//go func() {
-
-	if err = httpServer.ListenAndServeTLS("./keys/CA_public.key.crt", "./keys/private.key"); err != nil {
-		fmt.Printf("[ERROR] failed to start http server %v\n", err)
-		return
-	}
-
-	//}()
+	go func() {
+		if err = httpServer.ListenAndServeTLS("./keys/CA_public.key.crt", "./keys/private.key"); err != nil {
+			fmt.Printf("[ERROR] failed to start http server %v\n", err)
+			return
+		}
+	}()
 
 	defer ctxCancel()
 	time.Sleep(time.Second) // waiting for server start

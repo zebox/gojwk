@@ -2,8 +2,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -12,6 +17,8 @@ import (
 	"github.com/zebox/gojwk/storage"
 	"io"
 	"log"
+	"math/big"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -29,12 +36,35 @@ func main() {
 		panic(err)
 	}
 
+	// get PEM from private key
+	pemByte, err := x509.MarshalPKCS8PrivateKey(keys.Private())
+	if err != nil {
+		panic(err)
+	}
+
+	certPrivKeyPEM := new(bytes.Buffer)
+	pem.Encode(certPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: pemByte,
+	})
+
+	// create server certificate
+	serverCert, err := tls.X509KeyPair(keys.CertCA(), certPrivKeyPEM.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	serverTLSConf := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+	}
+
 	// init http server and routes
 	var httpServer = &http.Server{
 		Addr:              fmt.Sprintf(":%d", 8899),
 		Handler:           createRouter(keys, jwk),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       30 * time.Second,
+		TLSConfig:         serverTLSConf,
 	}
 
 	// shutting down server
@@ -44,15 +74,20 @@ func main() {
 	}()
 
 	// starting server
-	go func() {
-		_ = httpServer.ListenAndServe()
-	}()
+	//go func() {
+
+	if err = httpServer.ListenAndServeTLS("./keys/CA_public.key.crt", "./keys/private.key"); err != nil {
+		fmt.Printf("[ERROR] failed to start http server %v\n", err)
+		return
+	}
+
+	//}()
 
 	defer ctxCancel()
 	time.Sleep(time.Second) // waiting for server start
 
 	// try to get JWT
-	token, err := getToken(ctx)
+	token, err := getToken(ctx, keys)
 	if err != nil {
 		fmt.Printf("[ERROR]: %v\n", err)
 		return
@@ -60,7 +95,7 @@ func main() {
 	fmt.Printf("Token: %s\n", token)
 
 	// try to get data from service1 with JWT
-	data, err := getService(ctx, token)
+	data, err := getService(ctx, token, keys)
 	if err != nil {
 		fmt.Printf("[ERROR]: %v\n", err)
 		return
@@ -69,9 +104,24 @@ func main() {
 	fmt.Printf("Data: %s\n", data)
 }
 
-func getToken(ctx context.Context) (tkn token, err error) {
-	url := "http://127.0.0.1:8899/token"
-	client := &http.Client{Timeout: 5 * time.Second}
+func getToken(ctx context.Context, keys *gojwk.Keys) (tkn token, err error) {
+	url := "https://127.0.0.1:8899/token"
+
+	// create trusted certs pool for client request
+	certpool := x509.NewCertPool()
+	certpool.AppendCertsFromPEM(keys.CertCA())
+	clientTLSConf := &tls.Config{
+		RootCAs: certpool,
+	}
+
+	transport := &http.Transport{
+		TLSClientConfig: clientTLSConf,
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   5 * time.Second,
+	}
 
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, nil)
 	req.Header.Add("Accept", "application/json")
@@ -83,7 +133,12 @@ func getToken(ctx context.Context) (tkn token, err error) {
 		defer resp.Body.Close()
 	}
 
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil {
+		log.Printf("[ERROR]  failed to get token %+v", err)
+		return tkn, err
+	}
+
+	if resp.StatusCode != 200 {
 		log.Printf("[ERROR] [HTTP CODE: %d]failed to get token: %+v", resp.StatusCode, err)
 		return tkn, err
 	}
@@ -97,9 +152,23 @@ func getToken(ctx context.Context) (tkn token, err error) {
 	return tkn, nil
 }
 
-func getService(ctx context.Context, jwt token) (string, error) {
-	url := "http://127.0.0.1:8899/service1"
-	client := &http.Client{Timeout: 5 * time.Second}
+func getService(ctx context.Context, jwt token, keys *gojwk.Keys) (string, error) {
+	url := "https://127.0.0.1:8899/service1"
+
+	// create trusted certs pool for client request
+	certpool := x509.NewCertPool()
+	certpool.AppendCertsFromPEM(keys.CertCA())
+	clientTLSConf := &tls.Config{
+		RootCAs: certpool,
+	}
+	transport := &http.Transport{
+		TLSClientConfig: clientTLSConf,
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   5 * time.Second,
+	}
 
 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	req.Header.Add("Accept", "application/json")
@@ -123,7 +192,7 @@ func getService(ctx context.Context, jwt token) (string, error) {
 	return string(b), nil
 }
 
-func createRouter(keys *gojwk.Key, jwk *gojwk.JWK) *chi.Mux {
+func createRouter(keys *gojwk.Keys, jwk *gojwk.JWK) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
@@ -187,22 +256,66 @@ func createRouter(keys *gojwk.Key, jwk *gojwk.JWK) *chi.Mux {
 }
 
 // Init keys pair and JWK
-func initKeys() (keys *gojwk.Key, jwk *gojwk.JWK, err error) {
+func initKeys() (keys *gojwk.Keys, jwk *gojwk.JWK, err error) {
 
-	fileStore := storage.NewFileStorage("keys/private.key", "keys/public.key")
+	fileStore := storage.NewFileStorage("./keys", "private.key", "public.key")
 	keys, err = gojwk.NewKeys(gojwk.Storage(fileStore))
 
 	if err != nil {
 		// skip error handle because Load failed and will generate in next step
 	}
 
-	// if keys doesn't exist create new
-	if keys.Private() == nil {
-		if err := keys.Generate(); err != nil {
-			return nil, nil, err
-		}
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+
+			Organization:  []string{"TEST, INC."},
+			Country:       []string{"RU"},
+			Province:      []string{""},
+			Locality:      []string{"Krasnodar"},
+			StreetAddress: []string{"Krasnaya"},
+			PostalCode:    []string{"350000"},
+		},
+
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(5, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
 	}
 
+	// add Subject Alternative Name for requested IP and Domain
+	// it prevent untasted error with client request
+	// https://oidref.com/2.5.29.17
+	ca.IPAddresses = append(ca.IPAddresses, net.ParseIP("127.0.0.1"))
+	ca.IPAddresses = append(ca.IPAddresses, net.ParseIP("::"))
+	ca.DNSNames = append(ca.DNSNames, "localhost")
+
+	// check keys for exist in the storage provider path
+	if err = keys.Load(); err != nil {
+
+		// if keys doesn't exist or load fail then create new
+		if err = keys.Generate(); err != nil {
+			return nil, nil, err
+		}
+		// create CA certificate for created keys pair
+
+		if err = keys.CreateCAROOT(ca); err != nil {
+			return nil, nil, err
+		}
+
+		// if new keys pair created successfully save they to defined storage
+		if err = keys.Save(); err != nil {
+			return nil, nil, err
+		}
+
+	}
+
+	if err = keys.CreateCAROOT(ca); err != nil {
+		return nil, nil, err
+	}
+	// gets a JWK
 	j, err := keys.JWK()
 	jwk = &j // map as pointer
 

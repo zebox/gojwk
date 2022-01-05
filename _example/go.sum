@@ -10,5 +10,11 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/zebox/gojwk v0.0.0-20211231131926-ea654c3f011c h1:V+tINYiTulhs5ASBpHbNwnRqMHDbxIiIkxE9rlLz+Gw=
 github.com/zebox/gojwk v0.0.0-20211231131926-ea654c3f011c/go.mod h1:VwoOl7hMAGz1kR+Co4IAGU453qYS9TcJqG+rC26aM3A=
+github.com/zebox/gojwk v0.1.1-0.20220104174310-b277d6944ea1 h1:RC0lz6prK7hqQVtBNkAHjK/64obZF8NkOiqJdpZ3lyg=
+github.com/zebox/gojwk v0.1.1-0.20220104174310-b277d6944ea1/go.mod h1:VwoOl7hMAGz1kR+Co4IAGU453qYS9TcJqG+rC26aM3A=
+github.com/zebox/gojwk v0.1.1-0.20220105130503-b371bbc63506 h1:wmg2tjkf1lz3mYmYoJIqbRfe/2DMteCLq+xsG1MESqo=
+github.com/zebox/gojwk v0.1.1-0.20220105130503-b371bbc63506/go.mod h1:VwoOl7hMAGz1kR+Co4IAGU453qYS9TcJqG+rC26aM3A=
+github.com/zebox/gojwk v0.1.1-0.20220105133939-77d607d78934 h1:WwLRRre63W8C0AUYv61utZ5bTYW3K5jMEI9Xfn2Ub7g=
+github.com/zebox/gojwk v0.1.1-0.20220105133939-77d607d78934/go.mod h1:VwoOl7hMAGz1kR+Co4IAGU453qYS9TcJqG+rC26aM3A=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

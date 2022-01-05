@@ -162,6 +162,34 @@ func (k *Keys) KeyFunc(token *jwt.Token) (interface{}, error) {
 	return k.publicKey, nil
 }
 
+func PEMBytes(key interface{}) ([]byte, error) {
+	switch key.(type) {
+	case *rsa.PrivateKey:
+		keyBytes, err := x509.MarshalPKCS8PrivateKey(key)
+		if err != nil {
+			return nil, errors.New("failed to marshal private key to bytes")
+		}
+		return pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: keyBytes,
+			},
+		), nil
+	case *rsa.PublicKey:
+		keyBytes, err := x509.MarshalPKIXPublicKey(key)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed parse public key to PEM bytes encode")
+		}
+		return pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "RSA PUBLIC KEY",
+				Bytes: keyBytes,
+			},
+		), nil
+	}
+	return nil, errors.New("failed key file type for bytes encode")
+}
+
 // kid return Keys ID of public key for map with JWK
 func (k *Keys) kid() string {
 	n := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(k.publicKey.N.Bytes())

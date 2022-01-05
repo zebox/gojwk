@@ -103,6 +103,21 @@ func TestKey_CreateCACertificate(t *testing.T) {
 
 }
 
+func TestPEMBytes(t *testing.T) {
+	keys, err := NewKeys()
+	require.NoError(t, err)
+	assert.NotNil(t, keys)
+	assert.NoError(t, keys.Generate())
+
+	privatePemBytes, err := PEMBytes(keys.privateKey)
+	assert.NoError(t, err)
+	assert.NotNil(t, privatePemBytes)
+
+	publicPemBytes, err := PEMBytes(keys.publicKey)
+	assert.NoError(t, err)
+	assert.NotNil(t, publicPemBytes)
+}
+
 func TestKeys_CertCA(t *testing.T) {
 	keys, err := NewKeys()
 	require.NoError(t, err)

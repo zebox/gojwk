@@ -299,8 +299,8 @@ func initKeys() (keys *gojwk.Keys, jwk *gojwk.JWK, err error) {
 		if err = keys.Generate(); err != nil {
 			return nil, nil, err
 		}
-		// create CA certificate for created keys pair
 
+		// create CA certificate for created keys pair
 		if err = keys.CreateCAROOT(ca); err != nil {
 			return nil, nil, err
 		}

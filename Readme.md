@@ -75,8 +75,54 @@ if err!=nil {
     // handle error
 }
 ```
-`Keys` has method `CreateCAROOT` for create Certificate Authority (CA) for generated keys pair
+`Keys` has method `CreateCAROOT` for create Certificate Authority (CA) file with generated keys pair
+```go
+// create Keys instance
+keys, err := NewKeys()
+if err=keys.Load();err!=nil {
+    // handle error
+}
 
+// create certificate data
+ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+
+			Organization:  []string{"TEST, INC."},
+			Country:       []string{"RU"},
+			Province:      []string{""},
+			Locality:      []string{"Krasnodar"},
+			StreetAddress: []string{"Krasnaya"},
+			PostalCode:    []string{"350000"},
+		},
+
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(5, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	// add Subject Alternative Name for requested IP and Domain
+	// it prevent error with untrusted certificate for client request
+	// https://oidref.com/2.5.29.17
+	ca.IPAddresses = append(ca.IPAddresses, net.ParseIP("127.0.0.1"))
+	ca.IPAddresses = append(ca.IPAddresses, net.ParseIP("::"))
+	ca.DNSNames = append(ca.DNSNames, "localhost")
+
+// generate RSA keys pair (private and public)
+if err=keys.Generate();err!=nil {
+    // handle error
+}
+
+// create CA certificate for created keys pair
+if err = keys.CreateCAROOT(ca); err != nil {
+	return nil, nil, err
+}
+
+// if storage provider defined user should call Save function for store certificate and keys files
+```
 Full example with web service usage see here [example](https://github.com/zebox/gojwk/blob/master/_example/main.go)
 
 #### Status

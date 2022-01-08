@@ -10,11 +10,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/golang-jwt/jwt"
-	"github.com/zebox/gojwk"
-	"github.com/zebox/gojwk/storage"
 	"io"
 	"log"
 	"math/big"
@@ -22,6 +17,12 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/golang-jwt/jwt"
+	"github.com/zebox/gojwk"
+	"github.com/zebox/gojwk/storage"
 )
 
 type token struct {
@@ -29,6 +30,7 @@ type token struct {
 }
 
 func main() {
+
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	keys, jwk, err := initKeys()
 

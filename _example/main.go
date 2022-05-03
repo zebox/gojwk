@@ -56,7 +56,13 @@ func main() {
 		panic(err)
 	}
 
+	var caCertPool *x509.CertPool
+
+	caCertPool = x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(keys.CertCA())
+
 	serverTLSConf := &tls.Config{
+		ClientCAs:    caCertPool,
 		Certificates: []tls.Certificate{serverCert},
 	}
 

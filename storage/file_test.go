@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	testRootPath   = "./"
-	testPrivateKey = "test_private.key"
-	testPublicKey  = "test_public.key"
+	testPrivateKey = "test_private.key.tmp"
+	testPublicKey  = "test_public.key.tmp"
 )
+
+var testRootPath = os.TempDir() + "/"
 
 func TestNewFileStorage(t *testing.T) {
 
@@ -29,7 +30,7 @@ func TestNewFileStorage(t *testing.T) {
 func TestFileStorage_Save(t *testing.T) {
 	reader := rand.Reader
 
-	privateKey, err := rsa.GenerateKey(reader, 1024)
+	privateKey, err := rsa.GenerateKey(reader, 1024) //nolint:gosec
 	require.NoError(t, err)
 	require.NotNil(t, privateKey)
 
@@ -39,10 +40,10 @@ func TestFileStorage_Save(t *testing.T) {
 
 	defer deleteTestFile(t)
 
-	_, err = os.Stat(testPrivateKey)
+	_, err = os.Stat(testRootPath + testPrivateKey)
 	assert.NoError(t, err)
 
-	_, err = os.Stat(testPublicKey)
+	_, err = os.Stat(testRootPath + testPublicKey)
 	assert.NoError(t, err)
 
 }
@@ -50,7 +51,7 @@ func TestFileStorage_Save(t *testing.T) {
 func TestFileStorage_Load(t *testing.T) {
 	reader := rand.Reader
 
-	privateKey, err := rsa.GenerateKey(reader, 1024)
+	privateKey, err := rsa.GenerateKey(reader, 1024) //nolint:gosec
 	require.NoError(t, err)
 	require.NotNil(t, privateKey)
 

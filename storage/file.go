@@ -33,7 +33,7 @@ func NewFileStorage(rootPath, privateKey, publicKey string) FileStorage {
 // A public key need save separately for using in isolated web-service as JWK,
 // also save allow store certificates bundle files if they created
 func (fs FileStorage) Save(key *rsa.PrivateKey, certCA []byte) error {
-	privateKeyFile, err := os.Create(fmt.Sprintf("%s\\%s", fs.rootPath, fs.privateKey))
+	privateKeyFile, err := os.Create(fmt.Sprintf("%s/%s", fs.rootPath, fs.privateKey))
 	if err != nil {
 		return errors.Wrap(err, "failed to save private key")
 	}
@@ -46,7 +46,7 @@ func (fs FileStorage) Save(key *rsa.PrivateKey, certCA []byte) error {
 	}()
 
 	// processing with public key
-	publicKeyFile, err := os.Create(fmt.Sprintf("%s\\%s", fs.rootPath, fs.publicKey))
+	publicKeyFile, err := os.Create(fmt.Sprintf("%s/%s", fs.rootPath, fs.publicKey))
 	if err != nil {
 		return errors.Wrap(err, "failed to save private key")
 	}
@@ -76,7 +76,7 @@ func (fs FileStorage) Save(key *rsa.PrivateKey, certCA []byte) error {
 
 	if certCA != nil {
 		// processing with CA ROOT file
-		caRootFile, err := os.Create(fmt.Sprintf("%s\\CA_%s.%s", fs.rootPath, fs.publicKey, "crt"))
+		caRootFile, err := os.Create(fmt.Sprintf("%s/CA_%s.%s", fs.rootPath, fs.publicKey, "crt"))
 		if err != nil {
 			return errors.Wrap(err, "failed to save private key")
 		}
@@ -101,7 +101,7 @@ func (fs FileStorage) Load() (*rsa.PrivateKey, error) {
 		return nil, errors.New("path to private key must be set")
 	}
 
-	privateKeyFile, err := os.Open(fmt.Sprintf("%s\\%s", fs.rootPath, fs.privateKey))
+	privateKeyFile, err := os.Open(fmt.Sprintf("%s/%s", fs.rootPath, fs.privateKey))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to load private key from file %s\\%s", fs.rootPath, fs.privateKey)
 	}

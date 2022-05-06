@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	testRootPath   = "./"
-	testPrivateKey = "test_private.key"
-	testPublicKey  = "test_public.key"
+	testPrivateKey = "test_private.key.tmp"
+	testPublicKey  = "test_public.key.tmp"
 )
+
+var testRootPath = os.TempDir() + "/"
 
 func TestNewKeys(t *testing.T) {
 	k, err := NewKeys()
@@ -50,12 +51,14 @@ func TestNewKeys_withStorage(t *testing.T) {
 	err = keys.Generate()
 	require.NoError(t, err)
 	require.NoError(t, keys.Save())
+	changeKeyFilesPermission(t)
+
 	defer deleteTestFile(t)
 
 	_, err = os.Stat(testRootPath + testPrivateKey)
 	assert.NoError(t, err)
 
-	_, err = os.Stat(testPublicKey)
+	_, err = os.Stat(testRootPath + testPublicKey)
 	assert.NoError(t, err)
 
 }
@@ -75,6 +78,7 @@ func TestKey_GenerateKeys(t *testing.T) {
 }
 
 func TestKey_CreateCACertificate(t *testing.T) {
+
 	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	keys, err := NewKeys(Storage(fs))
 	require.NoError(t, err)
@@ -149,6 +153,7 @@ func TestKeys_CertCA(t *testing.T) {
 
 }
 func TestKey_Save(t *testing.T) {
+
 	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	keys, err := NewKeys(Storage(fs))
 	require.NoError(t, err)
@@ -177,6 +182,8 @@ func TestKey_Save(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, keys.Save())
+	changeKeyFilesPermission(t)
+
 	defer deleteTestFile(t)
 	// check files for exist on a filesystem
 	_, err = os.Stat(testRootPath + testPrivateKey)
@@ -196,11 +203,13 @@ func TestKey_Save(t *testing.T) {
 	require.NoError(t, err)
 
 	err = keys.Save()
+	changeKeyFilesPermission(t)
 	assert.Error(t, err)
 
 }
 
 func TestKey_Load(t *testing.T) {
+
 	fs := storage.NewFileStorage(testRootPath, testPrivateKey, testPublicKey)
 	keys, err := NewKeys(Storage(fs))
 	require.NoError(t, err)
@@ -209,6 +218,8 @@ func TestKey_Load(t *testing.T) {
 	err = keys.Generate()
 	require.NoError(t, err)
 	require.NoError(t, keys.Save())
+	changeKeyFilesPermission(t)
+
 	defer deleteTestFile(t)
 
 	_, err = os.Stat(testRootPath + testPrivateKey)
@@ -297,4 +308,15 @@ func deleteTestFile(t *testing.T) {
 
 	err = os.Remove(testRootPath + testPublicKey)
 	assert.NoError(t, err)
+}
+
+// changeKeyFilesPermission use in GitHub action for test only
+func changeKeyFilesPermission(t *testing.T) {
+	if os.Getenv("GITHUB_WORKSPACE") != "" {
+		err := os.Chmod(testRootPath+testPrivateKey, 0777)
+		assert.NoError(t, err)
+		err = os.Chmod(testRootPath+testPublicKey, 0777)
+		assert.NoError(t, err)
+	}
+
 }

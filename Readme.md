@@ -1,5 +1,7 @@
 ### JSON Web Key (JWK) tool
---- 
+---
+[![Coverage Status](https://coveralls.io/repos/github//zebox/gojwk/badge.svg?branch=master)](https://coveralls.io/github/zebox/gojwk?branch=master)
+
 This simple library provides tools for work with private and public keys using RSA 
 as [JWK](https://datatracker.ietf.org/doc/html/rfc7517).
 The Library allows generating, save and load crypto keys pair based on RSA algorithm. 

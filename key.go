@@ -110,8 +110,8 @@ func (k *Keys) Private() *rsa.PrivateKey {
 }
 
 func (k *Keys) CreateCAROOT(ca *x509.Certificate) error {
-	if k.privateKey == nil {
-		return errors.New("private key shouldn't be nil when CA create")
+	if k.privateKey == nil || k.publicKey == nil {
+		return errors.New("private and public keys shouldn't be nil when CA create")
 	}
 
 	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, k.publicKey, k.privateKey)

@@ -75,6 +75,9 @@ func TestKey_GenerateKeys(t *testing.T) {
 	assert.NotNil(t, k.publicKey)
 	assert.NotNil(t, k.privateKey)
 
+	k.bitSize = 8
+	require.Error(t, k.Generate())
+
 }
 
 func TestKey_CreateCACertificate(t *testing.T) {
@@ -104,6 +107,10 @@ func TestKey_CreateCACertificate(t *testing.T) {
 	}
 	assert.NoError(t, keys.CreateCAROOT(ca))
 	assert.NotNil(t, keys.CertCA())
+
+	// test without or wrong private key
+	keys.privateKey = nil
+	assert.Error(t, keys.CreateCAROOT(ca))
 
 }
 
@@ -237,6 +244,11 @@ func TestKey_Load(t *testing.T) {
 	assert.NoError(t, keys.Load())
 	assert.NotNil(t, keys.publicKey)
 	assert.NotNil(t, keys.privateKey)
+
+	badFs := storage.NewFileStorage("fake_path", testPrivateKey, testPublicKey)
+	keys, errNewKeys := NewKeys(Storage(badFs))
+	assert.NoError(t, errNewKeys)
+	assert.Error(t, keys.Load())
 
 	keys.storage = nil
 	assert.Error(t, keys.Load())

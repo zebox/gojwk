@@ -127,6 +127,11 @@ func TestPEMBytes(t *testing.T) {
 	publicPemBytes, err := PEMBytes(keys.publicKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, publicPemBytes)
+
+	publicPemBytes, err = PEMBytes(struct{}{})
+	assert.Error(t, err)
+	assert.Nil(t, publicPemBytes)
+
 }
 
 func TestKeys_CertCA(t *testing.T) {
@@ -275,6 +280,7 @@ func TestKey_JWK(t *testing.T) {
 }
 
 func TestKey_signJWT(t *testing.T) {
+
 	claims := &jwt.MapClaims{
 		"iss":   "http://go.localhost.test",
 		"iat":   time.Now().Unix(),
@@ -312,6 +318,7 @@ func TestKey_signJWT(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, token)
+
 }
 
 func deleteTestFile(t *testing.T) {

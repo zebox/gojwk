@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/golang-jwt/jwt"
 	"github.com/pkg/errors"
 )
 
@@ -28,9 +27,6 @@ type Keys struct {
 
 	//  Certificate and  Certificate Authority
 	certCARoot []byte
-
-	// json web key need for using in keyFunc for JWT sign check with Keys instance
-	jwk JWK
 
 	// Keys bit size value, set in Options, default - 2048
 	bitSize int
@@ -149,19 +145,6 @@ func (k *Keys) CertCA() []byte {
 	return k.certCARoot
 }
 
-// KeyFunc use for JWT sign verify with specific public Keys
-func (k *Keys) KeyFunc(token *jwt.Token) (interface{}, error) {
-
-	keyID, ok := token.Header["kid"].(string)
-	if !ok {
-		return nil, errors.New("get JWT kid header not found")
-	}
-	if k.jwk.Kid != keyID {
-		return nil, errors.Errorf("hasn't JWK with kid [%s] for check", keyID)
-	}
-	return k.publicKey, nil
-}
-
 func PEMBytes(key interface{}) ([]byte, error) {
 	switch key.(type) {
 	case *rsa.PrivateKey:
@@ -195,7 +178,7 @@ func (k *Keys) kid() string {
 	n := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(k.publicKey.N.Bytes())
 
 	// create kid from public Keys modulus
-	h := sha1.New()
+	h := sha256.New()
 	h.Write([]byte(n))
 	kidBytes := h.Sum(nil)
 	return base64.StdEncoding.EncodeToString(kidBytes)[:4]

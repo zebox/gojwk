@@ -7,7 +7,7 @@ package gojwk
 
 import (
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -43,7 +43,7 @@ func NewJWK(publicKey *rsa.PublicKey) (jwk JWK, err error) {
 	e := base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(eBuff)
 
 	// create kid from public Keys modulus
-	h := sha1.New()
+	h := sha256.New()
 	h.Write([]byte(n))
 	kidBytes := h.Sum(nil)
 	kid := base64.StdEncoding.EncodeToString(kidBytes)

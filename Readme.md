@@ -1,6 +1,6 @@
 ### JSON Web Key (JWK) tool
 ---
-[![Build Status](https://github.com/zebox/gojwk/actions/workflows/main.yml/badge.svg)](https://github.com/zebox/gojwk/actions) [![Coverage Status](https://coveralls.io/repos/github/zebox/gojwk/badge.svg)](https://coveralls.io/github/zebox/gojwk) [![Go Report Card](https://goreportcard.com/badge/github.com/zebox/gojwk)](https://goreportcard.com/report/github.com/zebox/gojwk)
+[![Build Status](https://github.com/zebox/gojwk/actions/workflows/main.yml/badge.svg)](https://github.com/zebox/gojwk/actions) [![Build Status](https://github.com/zebox/gojwk/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/zebox/gojwk/actions) [![Coverage Status](https://coveralls.io/repos/github/zebox/gojwk/badge.svg)](https://coveralls.io/github/zebox/gojwk) [![Go Report Card](https://goreportcard.com/badge/github.com/zebox/gojwk)](https://goreportcard.com/report/github.com/zebox/gojwk)
 
 This simple library provides tools for work with private and public keys using RSA 
 as [JWK](https://datatracker.ietf.org/doc/html/rfc7517).
